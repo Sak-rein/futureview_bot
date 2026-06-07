@@ -17,11 +17,18 @@ class FutureView(commands.Cog):
         canvas = Image.new("RGBA", (canvas_w, canvas_h), color=(255, 255, 255, 255))
         draw = ImageDraw.Draw(canvas)
         
+        # 自動計算最外層 NotoSansJP-Regular.ttf 的絕對路徑
+        current_dir = os.path.dirname(os.path.abspath(__file__)) # cogs 資料夾路徑
+        project_root = os.path.dirname(current_dir) # 最外層資料夾路徑
+        font_path = os.path.join(project_root, "NotoSansJP-Regular.ttf")
+
         try:
-            font_main = ImageFont.truetype("NotoSansJP-Regular.ttf", 20)
-            font_title = ImageFont.truetype("NotoSansJP-Regular.ttf", 20)
+            # 使用絕對路徑讀取
+            font_main = ImageFont.truetype(font_path, 20)
+            font_title = ImageFont.truetype(font_path, 20)
+            print(f"🎉 成功使用絕對路徑載入中日字型：{font_path}")
         except Exception as font_error:
-            print(f"字型載入失敗，改用預設字體: {font_error}")
+            print(f"❌ 絕對路徑載入依舊失敗，原因: {font_error}")
             font_main = ImageFont.load_default()
             font_title = ImageFont.load_default()
 
