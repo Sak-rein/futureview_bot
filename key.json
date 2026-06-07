@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "futureview-498610",
+  "private_key_id": "01049615385bf4993028477af93cca78f3da35b1",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQCqLXt7Y4B7dXKr\nvW5eBQgaeIq8KeDtmrEgPKXgnvfF7T8MZi4cIoirV269zS02bm2bU58eVbraZInI\nzmJw+xpfxBmatOLsFo5T63NuVgTCnsewGETaavw+S9VesyD4tIc8eho6fL57ZCFn\nbt6WXv+ccksraMgGzlG4baAdkbnnuyobXOreZYUooXrlWcQaE+3Ke5evQpq2HK+/\nbLNFINLAj5PnaGecNAAO2t6J65HvfMVGgTyS/+pv92LwedypzO3FvT1Zh/9hd0e3\n1MruSfbSz83P4U6hw3B0pITB+XXnIkAlL2XJlAs6Nk24REe7iA5fkNkMKQe1YASI\nVmBLag4lAgMBAAECggEACmQ/m5L0yAhg3OemD/V+GRVOR3Vfmxkfz5U65Dxg0R3B\n6vE1+v+i2W+iPzkCfBK1lhwLmQ/o51tNswAWfWN5j1DlGimi7ht/sm34vP6Urzuz\ne7Q0eomFs9ojaKZ6KqWypZJ0Yo9QF5UCmZNo4fhhr6OmpaGlQUEjaiZYXIxHAV7p\n3vXFSsavPm1DnOaHcOCB35Sn8yuCDTgfVFpWJxuN1Vq6Db8EKs/8muaHGhF1hn+D\nBv7+Q0ZVahlQr2kiiTn+t79ji2ET3ZsrW3pvH5eHtf61uOzxDv5kN3Z3B4cYt3pc\nlUQ/6el+Dw3moPAD2TyjPZ/8/AQu4cJmKy2PX9ReiwKBgQDS56AgpJP5q6B743PY\nmUtR46DnlwRCNfUb6CnOMhUxCKhUDw0A2WwHL4XM8I6I5EpJnbsesRhYEjiBGZiF\nfrHqoQRtwFF365asP7bCQL72cTXHGS0GArpcxqRAwoueNFuPJp7QXugznP3fS4+A\nj46aN5ywZNVNv2olbZ2siNbyTwKBgQDOkI+krDXi5uyc5KEcj5vTuPD9+4Ey75dh\nZwQYchDCa0oZ4yaPyGGlLofuS2SzBSf1WsSdtwhJV8GVLTFyWFsLA+/jp654JAnv\nGz8tK8Bo149wKlNBbcTt694CqOBj3sT5HKdsDMujEqoyLPOFMlPWfHSsVBD3w/gq\njTZkim6fSwKBgQCYn/y2gsN/Y9+AqEqWjeD/Au7XiecQD0IxDuLqED5bvLssEbRE\nUBOoY5C9jbxofmTwP1BB1sEaQx1W9/HzcYtJk3rD/fA3C2t/faBBlV9csvLLAYIe\nnmzFZQ9Kuj8Vnyg/QSCfBH+fklX6eREBZWI6YlJnKKFgYUxsh5YaXPDIawKBgQCR\ncYZCu6LhlhlqSy0J0DA3PpQpMSqCc+LSCVf/4mjci/DME322ZbAjP4Uki19nEa1V\n+8hPCG5EPg8m+4BCc+X+9pG1aP7WxwFbo4KzSogbChSMNLEUc7bik15p3wDIMTXd\n9YgI82V6+AxwcegxlAMmFdGM+VBNNGYLiAyRdEt5ywKBgQC/CkYSWtBzmmbtieVv\nkx2H6jnnsZRdxx6wKq4z6mQWpWgdqvwim6jYPcYwkojiuPLWpyODLO0XnCOQxeGF\npXG4Ci6IJ0peSMPQNX1Vvlz3hRZ6E/dBAzbcDSMlG+0qCy0esUTDN3oV1ycBUJKj\nRHcnVwU2ocru+GBqqpv1q0roTg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "discord-bot-483@futureview-498610.iam.gserviceaccount.com",
+  "client_id": "117955547428539190422",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/discord-bot-483%40futureview-498610.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

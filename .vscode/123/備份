@@ -1,0 +1,44 @@
+import discord # 把 discord.py 載入進來
+import json
+import gspread
+from discord import app_commands # 載入 Slash Command 功能
+
+GUILD_ID = 728929244830498857 # 建立一個變數，設定應用的伺服器ID
+
+class MyClient(discord.Client): # 創造一個 Client，並繼承 Discord Client 功能
+    def __init__(self): # 建構子，開始初始化設定。
+        super().__init__(intents = discord.Intents.default())
+
+        self.tree = app_commands.CommandTree(self)
+
+        # 1. 在出廠設定裡讀取憑證
+        with open("key.json", "r") as f:
+            info = json.load(f)
+
+        # 2. 把連線成功的物件，綁在bot (self) 身上
+        self.gc = gspread.service_account_from_dict(info)
+        self.sht = self.gc.open("未來活動時程 data").sheet1
+
+    async def setup_hook(self):
+        print("同步指令中...")
+        guild = discord.Object(id=GUILD_ID)
+
+        # 將全域指令複製到指定的伺服器
+        self.tree.copy_global_to(guild=guild)
+
+        # 正式同步到該伺服器，並取得同步成功的指令清單
+        synced = await self.tree.sync(guild=guild)
+        print(f"成功同步了 {len(synced)} 個斜線指令")
+
+bot = MyClient()
+@bot.tree.command( name="期數", description="臺邦活動期數")
+async def Events(interaction):
+    await interaction.response.send_message("資料庫抓取")
+
+
+
+# 讀取 token.txt 的內容
+with open("token.txt", "r", encoding="utf-8") as f:
+    BOT_TOKEN = f.read().strip()
+
+bot.run(BOT_TOKEN)
