@@ -56,17 +56,17 @@ class FutureView(commands.Cog):
         title = row_data.get('活動名稱', '')
 
         # 第一層文字區塊排版
-        draw.text((45, 303), f"{period} ", fill=(0, 0, 0), font=font_main, anchor="mm")
-        draw.text((110, 303), f"{mode} ", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((45, 302), f"{period} ", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((110, 302), f"{mode} ", fill=(0, 0, 0), font=font_main, anchor="mm")
         draw.line([(158, 320.5), (158, 285)], fill=(200, 200, 200), width=2) # 縱向直條分隔線
     
-        draw.text((220, 303), f"{start_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((220, 302), f"{start_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
         draw.line([(288, 320.5), (288, 285)], fill=(200, 200, 200), width=2) # 縱向直條分隔線
     
-        draw.text((355, 303), f"{end_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((355, 302), f"{end_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
         draw.line([(423, 320.5), (423, 285)], fill=(200, 200, 200), width=2) # 縱向直條分隔線
 
-        draw.text((637, 303), f"{title}", fill=(27, 38, 59), font=font_title, anchor="mm") # 活動名稱
+        draw.text((637, 302), f"{title}", fill=(27, 38, 59), font=font_title, anchor="mm") # 活動名稱
 
         # 屬性
         attr_name = str(row_data.get('attribute', '')).lower().strip()
@@ -77,10 +77,15 @@ class FutureView(commands.Cog):
 
         # 樂隊logo
         logo_name = str(row_data.get('logo', '')).lower().strip()
-        logo_path = f"assets/logos/{logo_name}.png"
+        
+        # 定位
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        logo_path = os.path.join(project_root, "assets", "logos", f"{logo_name}.png")
+
         if os.path.exists(logo_path):
             logo_img = Image.open(logo_path).convert("RGBA").resize((140, 70))
-            canvas.paste(logo_img, (15, 315), logo_img)
+            canvas.paste(logo_img, (15, 317), logo_img)
 
         # 角色大頭貼
         chibi_raw = str(row_data.get('出場角色', ''))
