@@ -18,8 +18,8 @@ class FutureView(commands.Cog):
         draw = ImageDraw.Draw(canvas)
         
         try:
-            font_main = ImageFont.truetype("NotoSansTC-Regular.ttf", 24)
-            font_title = ImageFont.truetype("NotoSansTC-Regular.ttf", 24)
+            font_main = ImageFont.truetype("NotoSansJP-Regular.ttf", 20)
+            font_title = ImageFont.truetype("NotoSansJP-Regular.ttf", 20)
         except Exception as font_error:
             print(f"字型載入失敗，改用預設字體: {font_error}")
             font_main = ImageFont.load_default()
