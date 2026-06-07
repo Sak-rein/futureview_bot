@@ -17,16 +17,11 @@ class FutureView(commands.Cog):
         canvas = Image.new("RGBA", (canvas_w, canvas_h), color=(255, 255, 255, 255))
         draw = ImageDraw.Draw(canvas)
         
-        font_paths = ["C:\\Windows\\Fonts\\msjh.ttc", "msjh.ttc", "assets/fonts/msjh.ttc"]
-        font_main, font_title = None, None
-        for path in font_paths:
-            if os.path.exists(path):
-                try:
-                    font_main = ImageFont.truetype("NotoSansTC.ttf", 24) # 內文字體大小
-                    font_title = ImageFont.truetype("NotoSansTC.ttf", 24) # 活動名稱字體大小
-                    break
-                except: continue
-        if font_main is None:
+        try:
+            font_main = ImageFont.truetype("NotoSansTC-Regular.ttf", 24)
+            font_title = ImageFont.truetype("NotoSansTC-Regular.ttf", 24)
+        except Exception as font_error:
+            print(f"字型載入失敗，改用預設字體: {font_error}")
             font_main = ImageFont.load_default()
             font_title = ImageFont.load_default()
 
