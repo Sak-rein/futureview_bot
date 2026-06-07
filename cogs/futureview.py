@@ -118,7 +118,7 @@ class FutureView(commands.Cog):
         return img_buffer
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
-    @app_commands.describe(period="期數數字")
+    @app_commands.describe(period="請輸入期數（不含316之前）")
     
     # 1. 設定安裝類型：允許伺服器安裝 (guild) 與 使用者隨身安裝 (user)
     @app_commands.allowed_installs(guilds=True, users=True)
@@ -130,7 +130,6 @@ class FutureView(commands.Cog):
         try:
             records = self.bot.sheets_cache
             if not records:
-                print("檢測到快取尚未就緒，啟動即時緊急查詢...")
                 loop = asyncio.get_event_loop()
                 records = await loop.run_in_executor(None, self.bot.sht.get_all_records)
             
