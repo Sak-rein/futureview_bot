@@ -26,9 +26,9 @@ class FutureView(commands.Cog):
             # 使用絕對路徑讀取
             font_main = ImageFont.truetype(font_path, 20)
             font_title = ImageFont.truetype(font_path, 20)
-            print(f"🎉 成功使用絕對路徑載入中日字型：{font_path}")
+            print(f"成功載入中日字型：{font_path}")
         except Exception as font_error:
-            print(f"❌ 絕對路徑載入依舊失敗，原因: {font_error}")
+            print(f"絕對路徑載入依舊失敗，原因: {font_error}")
             font_main = ImageFont.load_default()
             font_title = ImageFont.load_default()
 
