@@ -13,7 +13,7 @@ class FutureView(commands.Cog):
 
     def generate_image(self, row_data):
         """利用 Pillow 繪製未來視圖片畫布排版"""
-        canvas_w, canvas_h = 850, 520 #畫布寬高
+        canvas_w, canvas_h = 850, 520 # 畫布寬高
         canvas = Image.new("RGBA", (canvas_w, canvas_h), color=(255, 255, 255, 255))
         draw = ImageDraw.Draw(canvas)
         
