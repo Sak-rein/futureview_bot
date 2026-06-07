@@ -145,7 +145,7 @@ def generate_preview_image(row_data):
     return canvas
 
 if __name__ == "__main__":
-    print("🎨 正在生成排版預覽圖...")
+    print("正在生成排版預覽圖...")
     result_image = generate_preview_image(MOCK_DATA)
     
     # 將測試圖存檔到專案目錄下，檔名為 layout_preview.png
@@ -153,7 +153,7 @@ if __name__ == "__main__":
     result_image.save(output_filename)
     print(f"💾 預覽圖片已儲存至: {os.path.abspath(output_filename)}")
     
-    # 🚀 自動調用作業系統預設的相片檢視器跳出圖片視窗
+    # 自動調用作業系統預設的相片檢視器跳出圖片視窗
     try:
         result_image.show()
     except Exception as e:
