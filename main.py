@@ -8,7 +8,8 @@ def home():
     return "Bot is alive!"
 
 def run_web():
-    app.run(host='0.0.0.0', port=8080)
+    port = int(os.environ.get("PORT", 8080))
+    app.run(host="0.0.0.0", port=port)
 
 import discord
 import json
@@ -19,8 +20,6 @@ from discord.ext import commands
 
 # 使用者安裝型（全域），伺服器變數放著以防萬一
 GUILD_ID = 728929244830498857
-
-
 
 class MyClient(commands.Bot):
     def __init__(self):
