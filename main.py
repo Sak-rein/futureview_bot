@@ -1,3 +1,15 @@
+from flask import Flask
+from threading import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "Bot is alive!"
+
+def run_web():
+    app.run(host='0.0.0.0', port=8080)
+
 import discord
 import json
 import gspread
@@ -7,6 +19,8 @@ from discord.ext import commands
 
 # 使用者安裝型（全域），伺服器變數放著以防萬一
 GUILD_ID = 728929244830498857
+
+
 
 class MyClient(commands.Bot):
     def __init__(self):
@@ -68,4 +82,7 @@ with open(token_path, "r", encoding="utf-8") as f:
     BOT_TOKEN = f.read().strip()
 
 # 啟動機器人
+t = Thread(target=run_web)
+t.start()
+
 bot.run(os.getenv("BOT_TOKEN"))
