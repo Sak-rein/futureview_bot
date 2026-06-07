@@ -1,7 +1,8 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+from PIL import ImageFont
 import io
 import os
 import asyncio
@@ -21,8 +22,8 @@ class FutureView(commands.Cog):
         for path in font_paths:
             if os.path.exists(path):
                 try:
-                    font_main = ImageFont.truetype("NotoSansTC.ttf", 18) # 內文字體大小
-                    font_title = ImageFont.truetype("NotoSansTC.ttf", 18) # 活動名稱字體大小
+                    font_main = ImageFont.truetype("NotoSansTC.ttf", 24) # 內文字體大小
+                    font_title = ImageFont.truetype("NotoSansTC.ttf", 24) # 活動名稱字體大小
                     break
                 except: continue
         if font_main is None:
