@@ -1,3 +1,5 @@
+print("DEBUG: 程式碼已被重新載入，版本：324")
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -40,7 +42,7 @@ class FutureView(commands.Cog):
             banner_img = banner_img.resize((canvas_w, 280))
             canvas.paste(banner_img, (0, 0), banner_img)
         else:
-            draw.rectangle([0, 0, canvas_w, 240], fill=(220, 220, 220))
+            draw.rectangle([0, 0, canvas_w, 280], fill=(220, 220, 220))
             draw.text((canvas_w//2 - 80, 100), "( 暫無 Banner 圖片 )", fill=(100, 100, 100), font=font_main)
 
         # 表格格線繪製
