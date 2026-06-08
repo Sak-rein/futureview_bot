@@ -37,8 +37,8 @@ class FutureView(commands.Cog):
         banner_path = f"assets/banner/{banner_name}.png"
         banner_name and os.path.exists(banner_path)
         banner_img = Image.open(banner_path).convert("RGBA")
-        banner_img = banner_img.resize((canvas_w, 283))
-        canvas.paste(banner_img, (0, 0), banner_img)
+        banner_img = banner_img.resize((canvas_w, 282))
+        canvas.paste(banner_img, (0, 1), banner_img)
 
         # 表格格線繪製
         draw.line([(0, 285), (canvas_w, 285)], fill=(0, 0, 0), width=2) # 頂部粗橫線
