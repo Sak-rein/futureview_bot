@@ -40,7 +40,7 @@ class FutureView(commands.Cog):
             banner_img = banner_img.resize((canvas_w, 280))
             canvas.paste(banner_img, (0, 0), banner_img)
         else:
-            draw.rectangle([0, 0, canvas_w, 230], fill=(220, 220, 220))
+            draw.rectangle([0, 0, canvas_w, 233], fill=(220, 220, 220))
             draw.text((canvas_w//2 - 80, 100), "( 暫無 Banner 圖片 )", fill=(100, 100, 100), font=font_main)
 
         # 表格格線繪製
@@ -85,7 +85,7 @@ class FutureView(commands.Cog):
 
         if os.path.exists(logo_path):
             logo_img = Image.open(logo_path).convert("RGBA").resize((140, 70))
-            canvas.paste(logo_img, (15, 317), logo_img)
+            canvas.paste(logo_img, (12, 317), logo_img)
 
         # 角色大頭貼
         chibi_raw = str(row_data.get('出場角色', ''))
@@ -116,7 +116,8 @@ class FutureView(commands.Cog):
         canvas.save(img_buffer, format="PNG")
         img_buffer.seek(0)
         return img_buffer
-
+    
+    # 定義斜線指令 (Slash Command)
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數（不含316之前）")
     
@@ -151,5 +152,6 @@ class FutureView(commands.Cog):
             print(f"指令內部報錯: {e}")
             await interaction.followup.send(f"處理失敗，錯誤訊息: {e}")
 
+# setup 函式向主程式註冊此 Cog
 async def setup(bot):
     await bot.add_cog(FutureView(bot))

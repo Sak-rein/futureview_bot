@@ -5,7 +5,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is alive!"
+    return "Bot is alive"
 
 def run_web():
     port = int(os.environ.get("PORT", 8080))
@@ -43,20 +43,18 @@ class MyClient(commands.Bot):
     async def setup_hook(self):
 
         # Cogs 模組載入與全域指令同步。
-        print("正在載入 Cogs 模組...")
+        # 自動載入 cogs 資料夾內所有的 .py 檔案
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
-                print(f'成功載入模組: {filename}')
-
-        print("進行全域指令同步...")
+                print(f'成功載入模組: {filename}，進行全域指令同步...')
         
         synced = await self.tree.sync() # 直接同步到全域
         print(f"【同步成功】全域同步 {len(synced)} 個斜線指令！")
 
     async def on_ready(self):
 
-        """機器人成功與 Discord 建立連線並上線後，才在背景默默下載試算表。"""
+        """機器人成功與 Discord 建立連線並上線後，才在背景下載試算表。"""
 
         print(f"機器人已成功登入為: {self.user.name}")
         
@@ -71,7 +69,7 @@ class MyClient(commands.Bot):
             except Exception as e:
                 print(f"預載入試算表失敗，錯誤訊息: {e}")
 
-# 實例化 Bot 物件
+# 實例化 Bot 物件，讓 Cog 內部可存取 Bot 主程式
 bot = MyClient()
 
 # 使用 os.path 絕對路徑讀取 token.txt 內的 Discord Token
