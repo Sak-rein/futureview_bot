@@ -15,7 +15,7 @@ import discord
 import json
 import gspread
 import os
-import asyncio 
+import asyncio
 from discord.ext import commands
 
 # 使用者安裝型（全域），伺服器變數放著以防萬一
