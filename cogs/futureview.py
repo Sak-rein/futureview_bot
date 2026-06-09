@@ -6,6 +6,7 @@ from PIL import ImageFont
 import io
 import os
 import asyncio
+import requests
 
 class FutureView(commands.Cog):
     def __init__(self, bot):
@@ -33,11 +34,13 @@ class FutureView(commands.Cog):
             font_title = ImageFont.load_default()
 
         # 1. Banner
-        banner_name = str(row_data.get('banner', '')).strip()
-        banner_path = f"assets/banner/{banner_name}.png"
-        banner_name and os.path.exists(banner_path)
-        banner_img = Image.open(banner_path).convert("RGBA")
-        banner_img = banner_img.resize((canvas_w, 282))
+        def get_image_from_url(url):
+            response = requests.get(url)
+            return Image.open(io.BytesIO(response.content)).convert("RGBA")
+
+        # 在 generate_image 中直接呼叫
+        image_url = row_data.get('banner_url') # 試算表直接給網址
+        banner_img = get_image_from_url(image_url).resize((850, 282))
         canvas.paste(banner_img, (0, 1), banner_img)
 
         # 表格格線繪製
