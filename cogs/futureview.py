@@ -99,26 +99,19 @@ class FutureView(commands.Cog):
                 chibi_img = Image.open(chibi_path).convert("RGBA").resize((48, 48))
                 x_pos = chibi_start_x + (i * chibi_spacing) 
                 canvas.paste(chibi_img, (x_pos, 327), chibi_img)
-        
 
-        # 5. 頂艦卡片 (從 card_url 網址抓取並強制去背)
+        # 5. 頂艦卡片
         card_raw = str(row_data.get('頂艦', ''))
-        # 試算表 'card_url' 是一串用逗號隔開的網址
-        card_urls = [u.strip() for u in str(row_data.get('card_url', '')).split(',') if u.strip()]
+        card_list = [c.strip() for c in card_raw.split(',') if c.strip()]
         card_start_x = 160  
         card_spacing = 135  
-        card_size = (120, 120)
-        for i, url in enumerate(card_urls):
-            try:
-                # 1. 下載圖片
-                response = requests.get(url, timeout=10)
-                if response.status_code == 200:
-                    card_img = Image.open(io.BytesIO(response.content)).convert("RGBA").resize(card_size)
-                    x_pos = card_start_x + (i * card_spacing)
-                    canvas.paste(card_img, (x_pos, 390), card_img)
-                    
-            except Exception as e:
-                print(f"頂艦卡片 {i+1} 載入失敗: {e}")
+        card_size = (120, 120) 
+        for i, card_name in enumerate(card_list):
+            card_path = f"assets/cards/{card_name}.png"
+            if os.path.exists(card_path):
+                card_img = Image.open(card_path).convert("RGBA").resize(card_size) 
+                x_pos = card_start_x + (i * card_spacing) 
+                canvas.paste(card_img, (x_pos, 390), card_img)
 
         img_buffer = io.BytesIO()
         canvas.save(img_buffer, format="PNG")
