@@ -70,23 +70,55 @@ class FutureView(commands.Cog):
 
         # 屬性 (保持本地讀取)
         attr_name = str(row_data.get('attribute', '')).lower().strip()
-        attr_path = os.path.join(project_root, "assets", "attribute", f"{attr_name}.png")
+        attr_path = f"assets/attribute/{attr_name}.png"
         if os.path.exists(attr_path):
-            canvas.paste(Image.open(attr_path).convert("RGBA").resize((100, 100)), (30, 400))
+            attr_img = Image.open(attr_path).convert("RGBA").resize((100, 100))
+            canvas.paste(attr_img, (30, 400), attr_img)
 
         # 樂隊logo (保持本地讀取)
-        logo_path = os.path.join(project_root, "assets", "logos", f"{str(row_data.get('logo', '')).lower().strip()}.png")
-        if os.path.exists(logo_path):
-            canvas.paste(Image.open(logo_path).convert("RGBA").resize((140, 70)), (12, 317))
-
-        # 角色與卡片 (保持本地讀取)
-        for i, name in enumerate([c.strip() for c in str(row_data.get('出場角色', '')).split(',') if c.strip()]):
-            path = os.path.join(project_root, "assets", "chibi", f"{name.lower()}.png")
-            if os.path.exists(path): canvas.paste(Image.open(path).convert("RGBA").resize((48, 48)), (197 + (i * 135), 327))
+        logo_name = str(row_data.get('logo', '')).lower().strip()
         
-        for i, name in enumerate([c.strip() for c in str(row_data.get('頂艦', '')).split(',') if c.strip()]):
-            path = os.path.join(project_root, "assets", "cards", f"{name}.png")
-            if os.path.exists(path): canvas.paste(Image.open(path).convert("RGBA").resize((120, 120)), (160 + (i * 135), 390))
+        # 定位
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        logo_path = os.path.join(project_root, "assets", "logos", f"{logo_name}.png")
+
+        if os.path.exists(logo_path):
+            logo_img = Image.open(logo_path).convert("RGBA").resize((140, 70))
+            canvas.paste(logo_img, (12, 317), logo_img)
+
+        
+        # 角色大頭貼
+        chibi_raw = str(row_data.get('出場角色', ''))
+        chibi_list = [c.strip() for c in chibi_raw.split(',') if c.strip()]
+        chibi_start_x = 197  
+        chibi_spacing = 135   
+        for i, name in enumerate(chibi_list):
+            chibi_path = f"assets/chibi/{name.lower()}.png"
+            if os.path.exists(chibi_path):
+                chibi_img = Image.open(chibi_path).convert("RGBA").resize((48, 48))
+                x_pos = chibi_start_x + (i * chibi_spacing) 
+                canvas.paste(chibi_img, (x_pos, 327), chibi_img)
+        
+
+        # 5. 頂艦卡片 (從 card_url 網址抓取並強制去背)
+        card_raw = str(row_data.get('頂艦', ''))
+        # 試算表 'card_url' 是一串用逗號隔開的網址
+        card_urls = [u.strip() for u in str(row_data.get('card_url', '')).split(',') if u.strip()]
+        card_start_x = 160  
+        card_spacing = 135  
+        card_size = (120, 120)
+        for i, url in enumerate(card_urls):
+            try:
+                # 1. 下載圖片
+                response = requests.get(url, timeout=10)
+                if response.status_code == 200:
+                    card_img = Image.open(io.BytesIO(response.content)).convert("RGBA").resize(card_size)
+                    x_pos = card_start_x + (i * card_spacing)
+                    canvas.paste(card_img, (x_pos, 390), card_img)
+                    
+            except Exception as e:
+                print(f"頂艦卡片 {i+1} 載入失敗: {e}")
 
         img_buffer = io.BytesIO()
         canvas.save(img_buffer, format="PNG")
