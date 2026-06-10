@@ -109,7 +109,6 @@ class FutureView(commands.Cog):
         card_spacing = 135
 
         for i, card_name in enumerate(card_list):
-
             card_img = self.bot.card_cache.get(card_name)
 
             if card_img:
@@ -120,20 +119,6 @@ class FutureView(commands.Cog):
         canvas.save(img_buffer, format="PNG")
         img_buffer.seek(0)
         return img_buffer
-        
-    @app_commands.command(name="sync_cards",description="update")
-    async def sync_cards(self, interaction: discord.Interaction):
-
-        if interaction.user.id != OWNER_ID:
-            return
-        await interaction.response.defer(thinking=True)
-
-        try:
-            await self.bot.preload_cards()
-            await interaction.followup.send(f"共 {len(self.bot.card_cache)} 張卡圖同步完成",ephemeral=True)
-
-        except Exception as e:
-            await interaction.followup.send(f"同步失敗：{e}",ephemeral=True)
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數（不含316之前）")
@@ -157,15 +142,19 @@ class FutureView(commands.Cog):
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
 
-    @app_commands.command(name="sync_cards",description="同步 Google Drive 卡圖")
-    async def sync_cards(self,interaction: discord.Interaction):
-        await interaction.response.defer(thinking=True)
+    # OWER 專用同步指令
+    @app_commands.guild_only()
+    @app_commands.default_permissions(administrator=True)
+    @app_commands.command(name="sync_cards",description="update")
+    async def sync_cards(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+
         try:
             await self.bot.preload_cards()
-            await interaction.followup.send(f"共 {len(self.bot.card_cache)} 張卡圖同步完成")
+            await interaction.followup.send(f"共 {len(self.bot.card_cache)} 張卡圖同步完成",ephemeral=True)
 
         except Exception as e:
-            await interaction.followup.send(f"同步失敗：{e}")
+            await interaction.followup.send(f"同步失敗：{e}",ephemeral=True)
 
 async def setup(bot):
     await bot.add_cog(FutureView(bot))
