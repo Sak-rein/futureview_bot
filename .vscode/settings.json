@@ -1,5 +1,6 @@
 {
     "workbench.preferredDarkColorTheme": "Dark 2026",
     "workbench.preferredHighContrastColorTheme": "Dark Modern",
-    "workbench.preferredHighContrastLightColorTheme": "Dark Modern"
+    "workbench.preferredHighContrastLightColorTheme": "Dark Modern",
+    "terminal.explorerKind": "integrated"
 }
