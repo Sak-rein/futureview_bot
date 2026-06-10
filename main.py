@@ -11,6 +11,8 @@ from googleapiclient.discovery import build
 from google.oauth2.service_account import Credentials
 from googleapiclient.http import MediaIoBaseDownload
 from PIL import Image
+from dotenv import load_dotenv
+load_dotenv()
 
 # --- Flask Web Server ---
 app = Flask('')
