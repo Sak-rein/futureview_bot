@@ -112,10 +112,13 @@ class MyClient(commands.Bot):
             try:
                 print("正在下載 Google 試算表資料...")
                 loop = asyncio.get_event_loop()
+
                 self.sheets_cache = await loop.run_in_executor(None, self.sht.get_all_records)
                 print(f"成功預載入 {len(self.sheets_cache)} 筆活動資料")
                 
-                await self.preload_cards()
+                # 背景同步卡圖
+                asyncio.create_task(self.preload_cards())
+
             except Exception as e:
                 print(f"on_ready 初始化失敗: {e}")
 

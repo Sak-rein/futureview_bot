@@ -7,6 +7,8 @@ import os
 import asyncio
 import requests  # 務必確保 requirements.txt 有加 requests
 
+OWNER_ID = 123456789012345678
+
 class FutureView(commands.Cog):
     def __init__(self, bot):
         self.bot = bot  
@@ -100,7 +102,7 @@ class FutureView(commands.Cog):
                 x_pos = chibi_start_x + (i * chibi_spacing) 
                 canvas.paste(chibi_img, (x_pos, 327), chibi_img)
 
-        # 頂艦卡片
+        # 頂艦卡片（Google Drive）
         card_raw = str(row_data.get('頂艦', ''))
         card_list = [c.strip() for c in card_raw.split(',') if c.strip()]
         card_start_x = 160
@@ -118,6 +120,20 @@ class FutureView(commands.Cog):
         canvas.save(img_buffer, format="PNG")
         img_buffer.seek(0)
         return img_buffer
+        
+    @app_commands.command(name="sync_cards",description="update")
+    async def sync_cards(self, interaction: discord.Interaction):
+
+        if interaction.user.id != OWNER_ID:
+            return
+        await interaction.response.defer(thinking=True)
+
+        try:
+            await self.bot.preload_cards()
+            await interaction.followup.send(f"共 {len(self.bot.card_cache)} 張卡圖同步完成",ephemeral=True)
+
+        except Exception as e:
+            await interaction.followup.send(f"同步失敗：{e}",ephemeral=True)
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數（不含316之前）")
