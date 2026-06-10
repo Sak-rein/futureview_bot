@@ -1,5 +1,12 @@
+import discord
+import json
+import gspread
+import os
+import asyncio
+
 from flask import Flask
 from threading import Thread
+from discord.ext import commands
 
 app = Flask('')
 
@@ -11,13 +18,6 @@ def run_web():
     port = int(os.environ.get("PORT", 8080))
     app.run(host="0.0.0.0", port=port)
 
-import discord
-import json
-import gspread
-import os
-import asyncio
-from discord.ext import commands
-
 # 使用者安裝型（全域），伺服器變數放著以防萬一
 GUILD_ID = 728929244830498857
 
@@ -26,14 +26,14 @@ class MyClient(commands.Bot):
         super().__init__(command_prefix="!", intents=discord.Intents.all())
 
         # 設定 Google API 憑證路徑
-        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-        key_path = os.path.join(BASE_DIR, "key.json")
+        google_creds_str = os.getenv("GOOGLE_CREDENTIALS")
         
-        with open(key_path, "r", encoding="utf-8") as f:
-            info = json.load(f)
+        if not google_creds_str:
+            raise ValueError("GOOGLE_CREDENTIALS 未設定")
+        google_creds = json.loads(google_creds_str)
         
         # 綁定 Google 試算表
-        self.gc = gspread.service_account_from_dict(info)
+        self.gc = gspread.service_account_from_dict(google_creds)
         self.sht = self.gc.open("未來活動時程 data").sheet1
         
         # 建立記憶體快取清單存放活動資料
@@ -60,7 +60,7 @@ class MyClient(commands.Bot):
         # 如果快取是空的，就啟動背景執行緒去撈 Google 試算表
         if not self.sheets_cache:
             print("正在下載 Google 試算表資料...")
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             try:
                 # 利用 run_in_executor 避免抓資料時卡住機器人的其他網路回應
                 self.sheets_cache = await loop.run_in_executor(None, self.sht.get_all_records)
@@ -70,12 +70,6 @@ class MyClient(commands.Bot):
 
 # 實例化 Bot 物件，讓 Cog 內部可存取 Bot 主程式
 bot = MyClient()
-
-# 使用 os.path 絕對路徑讀取 token.txt 內的 Discord Token
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-token_path = os.path.join(BASE_DIR, "token.txt")
-with open(token_path, "r", encoding="utf-8") as f:
-    BOT_TOKEN = f.read().strip()
 
 # 啟動機器人
 t = Thread(target=run_web)

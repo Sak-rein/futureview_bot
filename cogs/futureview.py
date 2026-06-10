@@ -16,7 +16,7 @@ class FutureView(commands.Cog):
         if not url or str(url).strip().lower() in ['none', 'nan', '']:
             return None
         try:
-            response = requests.get(url, timeout=10)
+            response = requests.get(url, timeout=5)
             if response.status_code == 200:
                 return Image.open(io.BytesIO(response.content)).convert("RGBA")
         except Exception as e:
@@ -119,14 +119,14 @@ class FutureView(commands.Cog):
         return img_buffer
     
     @app_commands.command(name="期數", description="臺邦未來活動情報")
-    @app_commands.describe(period="請輸入期數（不含316之前）")
+    @app_commands.describe(period="請輸入期數 (不含316之前)")
     
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int):
         await interaction.response.defer(thinking=True)
         try:
-            records = self.bot.sheets_cache or await asyncio.get_event_loop().run_in_executor(None, self.bot.sht.get_all_records)
+            records = await asyncio.to_thread(self.bot.sht.get_all_records)
             target_row = next((r for r in
             records if str(r.get('期數')) == str(period)), None)
             
