@@ -144,7 +144,7 @@ class FutureView(commands.Cog):
 
     # OWER 專用同步指令
     @app_commands.guild_only()
-    @app_commands.command(name="sync_cards",description="update")
+    @app_commands.command(name="update",description="sync")
     async def sync_cards(self, interaction: discord.Interaction):
         if interaction.user.id != OWNER_ID:
             return
