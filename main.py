@@ -23,13 +23,12 @@ GUILD_ID = 728929244830498857
 
 class MyClient(commands.Bot):
     def __init__(self):
-        # 使用 os.path 路徑防呆
+        super().__init__(command_prefix="!", intents=discord.Intents.all())
+
+        # 設定 Google API 憑證路徑
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         key_path = os.path.join(BASE_DIR, "key.json")
         
-        super().__init__(command_prefix="!", intents=discord.Intents.all())
-        
-        # 初始化時讀取 Google 憑證
         with open(key_path, "r", encoding="utf-8") as f:
             info = json.load(f)
         
