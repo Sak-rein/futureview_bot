@@ -4,6 +4,7 @@ import gspread
 import os
 import asyncio
 import io
+import time
 from flask import Flask
 from threading import Thread
 from discord.ext import commands
@@ -32,7 +33,8 @@ class MyClient(commands.Bot):
         # 初始化快取變數
         self.card_cache = {}
         self.card_file_map = {}
-        self.sheets_cache = []
+
+        self.cards_loaded = False
 
         # 設定 Google API 憑證路徑
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -63,65 +65,56 @@ class MyClient(commands.Bot):
         synced = await self.tree.sync()
         print(f"【同步成功】全域同步 {len(synced)} 個斜線指令！")
 
+    # 下載 GOOGLE DRIVE 頂艦圖檔
     async def preload_cards(self):
+        await asyncio.to_thread(self._preload_cards_sync)
+
+    def _preload_cards_sync(self):
+        
+        start_time = time.perf_counter()
+        
         FOLDER_ID = "1HHwr7mgqZ3UvShunByHGKxoQF4MllvbB"
         print("開始同步卡圖...")
         
-        try:
-            results = self.drive_service.files().list(q=f"'{FOLDER_ID}' in parents and trashed=false",
-            fields="files(id,name)"
-            ).execute()
-            files = results.get("files", [])
-            print(f"Drive 共 {len(files)} 個檔案")
+        results = self.drive_service.files().list(q=f"'{FOLDER_ID}' in parents and trashed=false",fields="files(id,name)"
+        ).execute()
 
-            self.card_cache.clear()
-            self.card_file_map.clear()
-
-            for file in files:
-                file_name = file["name"]
-                if not file_name.lower().endswith(".png"):
-                    continue
-                
-                card_name = file_name[:-4]
-                try:
-                    request = self.drive_service.files().get_media(fileId=file["id"])
-                    file_buffer = io.BytesIO()
-                    downloader = MediaIoBaseDownload(file_buffer, request)
-                    done = False
-                    while not done:
-                        _, done = downloader.next_chunk()
-                    file_buffer.seek(0)
-
-                    img = Image.open(file_buffer).convert("RGBA").resize((120, 120))
-                    self.card_cache[card_name] = img
-                    self.card_file_map[card_name] = file["id"]
-                    print(f"已載入卡圖: {card_name}")
-
-                except Exception as e:
-                    print(f"載入單張卡圖失敗 {card_name}: {e}")
+        files = results.get("files", [])
+        self.card_cache.clear()
+        self.card_file_map.clear()
+        
+        for file in files:
+            file_name = file["name"]
             
-            print(f"卡圖共 {len(self.card_cache)} 張同步完成")
+            if not file_name.lower().endswith(".png"):
+                continue
+            
+            card_name = file_name[:-4]
+            request = self.drive_service.files().get_media(fileId=file["id"])
+            file_buffer = io.BytesIO()
+            downloader = MediaIoBaseDownload(file_buffer, request)
+            
+            done = False
+            while not done:
+                _, done = downloader.next_chunk()
+            file_buffer.seek(0)
 
-        except Exception as e:
-            print(f"存取 Google Drive 失敗: {e}")
+            img = Image.open(file_buffer).convert("RGBA").resize((120, 120))
+            self.card_cache[card_name] = img
+            self.card_file_map[card_name] = file["id"]
+
+        elapsed = time.perf_counter() - start_time
+        print(f"共 {len(self.card_cache)} 張同步完成，耗時 {elapsed:.2f} 秒")
 
     async def on_ready(self):
         print(f"機器人已成功登入為: {self.user.name}")
         
-        if not self.sheets_cache:
-            try:
-                print("正在下載 Google 試算表資料...")
-                loop = asyncio.get_event_loop()
-
-                self.sheets_cache = await loop.run_in_executor(None, self.sht.get_all_records)
-                print(f"成功預載入 {len(self.sheets_cache)} 筆活動資料")
-                
-                # 背景同步卡圖
-                asyncio.create_task(self.preload_cards())
-
-            except Exception as e:
-                print(f"on_ready 初始化失敗: {e}")
-
+        if not self.cards_loaded:
+            self.cards_loaded = True
+        
+        # 背景同步卡圖
+        asyncio.create_task(self.preload_cards())
+        
 # --- Main Execution ---
 if __name__ == "__main__":
     # 啟動網頁伺服器線程

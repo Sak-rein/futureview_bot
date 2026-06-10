@@ -128,7 +128,7 @@ class FutureView(commands.Cog):
     async def Events(self, interaction: discord.Interaction, period: int):
         await interaction.response.defer(thinking=True)
         try:
-            records = self.bot.sheets_cache or await asyncio.get_event_loop().run_in_executor(None, self.bot.sht.get_all_records)
+            records = await asyncio.to_thread(self.bot.sht.get_all_records)
             target_row = next((r for r in
             records if str(r.get('期數')) == str(period)), None)
             
@@ -144,10 +144,11 @@ class FutureView(commands.Cog):
 
     # OWER 專用同步指令
     @app_commands.guild_only()
-    @app_commands.default_permissions(administrator=True)
     @app_commands.command(name="sync_cards",description="update")
     async def sync_cards(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
+        if interaction.user.id != OWNER_ID:
+            return
+        await interaction.response.defer(thinking=True,ephemeral=True)
 
         try:
             await self.bot.preload_cards()
