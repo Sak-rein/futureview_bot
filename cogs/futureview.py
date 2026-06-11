@@ -24,7 +24,6 @@ class FutureView(commands.Cog):
                     interaction.user.id,
                     interaction.user.name,
                     interaction.user.display_name,
-                    command_name
                 ]
             ), timeout=5 )
 
