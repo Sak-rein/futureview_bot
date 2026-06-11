@@ -1,15 +1,36 @@
 import discord
-from discord.ext import commands
-from discord import app_commands
-from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import asyncio
 import requests  # 務必確保 requirements.txt 有加 requests
 
+from discord.ext import commands
+from discord import app_commands
+from PIL import Image, ImageDraw, ImageFont
+from datetime import datetime
+
 class FutureView(commands.Cog):
     def __init__(self, bot):
         self.bot = bot  
+
+    async def record_user(self, interaction, command_name="/期數"):
+        try:
+
+            await asyncio.wait_for(
+            asyncio.to_thread(
+                self.bot.user_log.append_row,
+                [
+                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    interaction.user.id,
+                    interaction.user.name,
+                    interaction.user.display_name,
+                    command_name
+                ]
+            ), timeout=5 )
+
+        except Exception as e:
+            print(f"UserLog Error: {e}")
+
 
     # 封裝下載邏輯，避免崩潰
     def get_image_from_url(self, url):
@@ -117,24 +138,28 @@ class FutureView(commands.Cog):
         canvas.save(img_buffer, format="PNG")
         img_buffer.seek(0)
         return img_buffer
-    
+
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數 (不含316之前)")
-    
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int):
+        
+        # 新增一筆 log
         await interaction.response.defer(thinking=True)
+        await self.record_user(interaction, "/期數")
+        
         try:
             records = await asyncio.to_thread(self.bot.sht.get_all_records)
-            target_row = next((r for r in
-            records if str(r.get('期數')) == str(period)), None)
+            target_row = next(
+                (r for r in records if str(r.get('期數')) == str(period)), None)
             
             if not target_row:
                 await interaction.followup.send(f"找不到第 {period} 期的資料。")
                 return
 
             img_stream = self.generate_image(target_row)
+
             await interaction.followup.send(content=f"臺邦 {period} 期未來視：", file=discord.File(img_stream, filename=f"event_{period}.png"))
             
         except Exception as e:
