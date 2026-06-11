@@ -34,8 +34,11 @@ class MyClient(commands.Bot):
         
         # 綁定 Google 試算表
         self.gc = gspread.service_account_from_dict(google_creds)
-        self.sht = self.gc.open("FUTUREVIEW").sheet1
-        self.user_log = spreadsheet.worksheet("UserLog")
+
+        self.spreadsheet = self.gc.open("FUTUREVIEW")
+
+        self.sht = self.spreadsheet.sheet1
+        self.user_log = self.spreadsheet.worksheet("UserLog")
         
         # 建立記憶體快取清單存放活動資料
         self.sheets_cache = []
