@@ -145,9 +145,10 @@ class FutureView(commands.Cog):
     
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str]):
+    async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
-        is_private = visibility.value == "private"
+        # 預設僅自己可見/有選擇以使用者選擇為準
+        is_private = True if visibility is None else visibility.value == "private"
 
         # 新增一筆 log
         await interaction.response.defer(thinking=True, ephemeral=is_private)
@@ -161,7 +162,7 @@ class FutureView(commands.Cog):
             if not target_row:
                 await interaction.followup.send(f"找不到第 {period} 期的資料。")
                 return
-
+            
             img_stream = self.generate_image(target_row)
 
             await interaction.followup.send(content=f"臺邦 {period} 期未來視：", file=discord.File(img_stream, filename=f"event_{period}.png"))
