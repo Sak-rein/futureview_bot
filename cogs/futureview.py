@@ -139,13 +139,18 @@ class FutureView(commands.Cog):
         return img_buffer
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
-    @app_commands.describe(period="請輸入期數 (不含316之前)")
+    @app_commands.describe(period="請輸入期數 (不含316之前)", visibility="顯示方式")
+    @app_commands.choices(visibility=[app_commands.Choice(name="公開", value="public"),
+        app_commands.Choice(name="僅自己可見", value="private")])
+    
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def Events(self, interaction: discord.Interaction, period: int):
+    async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str]):
         
+        is_private = visibility.value == "private"
+
         # 新增一筆 log
-        await interaction.response.defer(thinking=True)
+        await interaction.response.defer(thinking=True, ephemeral=is_private)
         await self.record_user(interaction, "/期數")
         
         try:
