@@ -2,7 +2,7 @@ import discord
 import io
 import os
 import asyncio
-import requests  # 務必確保 requirements.txt 有加 requests
+import aiohttp  # 改用 aiohttp 進行非同步下載
 
 from discord.ext import commands
 from discord import app_commands
@@ -12,38 +12,46 @@ from datetime import datetime
 class FutureView(commands.Cog):
     def __init__(self, bot):
         self.bot = bot  
+        # 建立一個持久的 aiohttp session 供下載使用
+        self.session = aiohttp.ClientSession()
+
+    # 確保 Bot 關閉時能正常釋放 session
+    def cog_unload(self):
+        asyncio.create_task(self.session.close())
 
     async def record_user(self, interaction, command_name="/期數"):
         try:
-
-            await asyncio.wait_for(
-            asyncio.to_thread(
-                self.bot.user_log.append_row,
-                [
-                    datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    interaction.user.id,
-                    interaction.user.name,
-                    interaction.user.display_name,
-                ]
-            ), timeout=5 )
-
+            # 讓寫入 Log 在背景默默執行，不阻塞主流程
+            asyncio.create_task(
+                asyncio.to_thread(
+                    self.bot.user_log.append_row,
+                    [
+                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        interaction.user.id,
+                        interaction.user.name,
+                        interaction.user.display_name,
+                    ]
+                )
+            )
         except Exception as e:
             print(f"UserLog Error: {e}")
 
-
-    # 封裝下載邏輯，避免崩潰
-    def get_image_from_url(self, url):
+    # 修改為真正的 async 下載，不再阻塞線程
+    async def get_image_from_url_async(self, url):
         if not url or str(url).strip().lower() in ['none', 'nan', '']:
             return None
         try:
-            response = requests.get(url, timeout=5)
-            if response.status_code == 200:
-                return Image.open(io.BytesIO(response.content)).convert("RGBA")
+            async with self.session.get(url, timeout=5) as response:
+                if response.status == 200:
+                    data = await response.read()
+                    # 在線程中打開圖片，避免 PIL 阻塞
+                    return await asyncio.to_thread(lambda: Image.open(io.BytesIO(data)).convert("RGBA"))
         except Exception as e:
             print(f"下載圖片錯誤: {e}")
         return None
 
-    def generate_image(self, row_data):
+    # 此方法現在只純粹做繪圖（CPU密集），不包含任何網路請求
+    def generate_image(self, row_data, banner_img):
         canvas_w, canvas_h = 850, 520
         canvas = Image.new("RGBA", (canvas_w, canvas_h), color=(255, 255, 255, 255))
         draw = ImageDraw.Draw(canvas)
@@ -59,9 +67,7 @@ class FutureView(commands.Cog):
             font_main = ImageFont.load_default()
             font_title = ImageFont.load_default()
 
-        # 1. Banner (修改點：改為 URL 抓取)
-        image_url = row_data.get('banner_url')
-        banner_img = self.get_image_from_url(image_url)
+        # 1. Banner (由外部傳入已經下載好的圖片物件)
         if banner_img:
             banner_img = banner_img.resize((850, 282))
             canvas.paste(banner_img, (0, 1), banner_img)
@@ -97,17 +103,12 @@ class FutureView(commands.Cog):
 
         # 樂隊logo (保持本地讀取)
         logo_name = str(row_data.get('logo', '')).lower().strip()
-        
-        # 定位
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(current_dir)
         logo_path = os.path.join(project_root, "assets", "logos", f"{logo_name}.png")
 
         if os.path.exists(logo_path):
             logo_img = Image.open(logo_path).convert("RGBA").resize((140, 70))
             canvas.paste(logo_img, (12, 317), logo_img)
 
-        
         # 角色大頭貼
         chibi_raw = str(row_data.get('出場角色', ''))
         chibi_list = [c.strip() for c in chibi_raw.split(',') if c.strip()]
@@ -120,7 +121,7 @@ class FutureView(commands.Cog):
                 x_pos = chibi_start_x + (i * chibi_spacing) 
                 canvas.paste(chibi_img, (x_pos, 327), chibi_img)
 
-        # 5. 頂艦卡片
+        # 頂艦卡片
         card_raw = str(row_data.get('頂艦', ''))
         card_list = [c.strip() for c in card_raw.split(',') if c.strip()]
         card_start_x = 160  
@@ -134,38 +135,50 @@ class FutureView(commands.Cog):
                 canvas.paste(card_img, (x_pos, 390), card_img)
 
         img_buffer = io.BytesIO()
-        canvas.save(img_buffer, format="PNG")
+        # 【優化點】儲存為 PNG 時加上 optimize=True 壓縮體積，減少 Discord 載入負擔
+        canvas.save(img_buffer, format="PNG", optimize=True)
         img_buffer.seek(0)
         return img_buffer
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數 (不含316之前)", visibility="顯示方式")
-    @app_commands.choices(visibility=[app_commands.Choice(name="公開", value="public"),
-        app_commands.Choice(name="僅自己可見", value="private")])
-    
+    @app_commands.choices(visibility=[
+        app_commands.Choice(name="公開", value="public"),
+        app_commands.Choice(name="僅自己可見", value="private")
+    ])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
-        # 預設僅自己可見/有選擇以使用者選擇為準
         is_private = True if visibility is None else visibility.value == "private"
 
-        # 新增一筆 log
+        # 1. 先進 defer 讓 Discord 掛起等待
         await interaction.response.defer(thinking=True, ephemeral=is_private)
+        
+        # 2. 背景紀錄 Log，不阻礙後續程式碼執行
         await self.record_user(interaction, "/期數")
         
         try:
+            # 獲取 Google Sheets 資料
             records = await asyncio.to_thread(self.bot.sht.get_all_records)
-            target_row = next(
-                (r for r in records if str(r.get('期數')) == str(period)), None)
+            target_row = next((r for r in records if str(r.get('期數')) == str(period)), None)
             
             if not target_row:
                 await interaction.followup.send(f"找不到第 {period} 期的資料。")
                 return
             
-            img_stream = self.generate_image(target_row)
+            # 3. 【核心改動】使用 aiohttp 非同步下載 Banner，不佔用線程池
+            image_url = target_row.get('banner_url')
+            banner_img = await self.get_image_from_url_async(image_url)
 
-            await interaction.followup.send(content=f"臺邦 {period} 期未來視：", file=discord.File(img_stream, filename=f"event_{period}.png"))
+            # 4. 把下載好的圖片傳給繪圖函數
+            img_stream = await asyncio.to_thread(self.generate_image, target_row, banner_img)
+
+            # 5. 發送結果
+            await interaction.followup.send(
+                content=f"臺邦 {period} 期未來視：", 
+                file=discord.File(img_stream, filename=f"event_{period}.png")
+            )
             
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
