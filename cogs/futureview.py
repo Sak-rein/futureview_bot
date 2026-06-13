@@ -52,7 +52,7 @@ class FutureView(commands.Cog):
 
         # 1. Banner (本地快取讀取)
         banner_name = str(row_data.get('banner', '')).strip()
-        banner_path = os.path.join(project_root, "assets", "banner", banner_name)
+        banner_path = os.path.join(project_root, "assets", "banner", f"{banner_name}.png")
 
         banner_img = None
         if banner_name and os.path.exists(banner_path):
