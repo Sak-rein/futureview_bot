@@ -38,13 +38,14 @@ class MyClient(commands.Bot):
         self.spreadsheet = self.gc.open("FUTUREVIEW")
 
         self.sht = self.spreadsheet.sheet1
-        self.user_log = self.spreadsheet.worksheet("UserLog")
         
-        # 建立記憶體快取清單存放活動資料
+        # ⚠️ 注意：請確保你 Google Sheets 的分頁名稱真的是 "UserLog"
+        self.user_log = self.spreadsheet.worksheet("UserLog") 
+        
+        # 建立全域記憶體快取清單存放活動資料 (供 Cog 內部訪問)
         self.sheets_cache = []
 
     async def setup_hook(self):
-
         # Cogs 模組載入與全域指令同步。
         # 自動載入 cogs 資料夾內所有的 .py 檔案
         for filename in os.listdir('./cogs'):
@@ -53,30 +54,30 @@ class MyClient(commands.Bot):
                 print(f'成功載入模組: {filename}，進行全域指令同步...')
         
         synced = await self.tree.sync() # 直接同步到全域
-        print(f"【同步成功】全域同步 {len(synced)} 個斜線指令！")
+        print(f"【同步成功】全域同步 {len(synced)} 個斜線指令")
 
     async def on_ready(self):
-
         """機器人成功與 Discord 建立連線並上線後，才在背景下載試算表。"""
-
         print(f"機器人已成功登入為: {self.user.name}")
         
         # 如果快取是空的，就啟動背景執行緒去撈 Google 試算表
         if not self.sheets_cache:
-            print("正在下載 Google 試算表資料...")
+            print("正在下載 Google 試算表資料至全域快取...")
             loop = asyncio.get_running_loop()
             try:
                 # 利用 run_in_executor 避免抓資料時卡住機器人的其他網路回應
-                self.sheets_cache = await loop.run_in_executor(None, self.sht.get_all_records)
-                print(f"成功預載入 {len(self.sheets_cache)} 筆活動資料")
+                records = await loop.run_in_executor(None, self.sht.get_all_records)
+                self.sheets_cache = records
+                print(f"【快取成功】預載入 {len(self.sheets_cache)} 筆活動資料")
             except Exception as e:
                 print(f"預載入試算表失敗，錯誤訊息: {e}")
 
-# 實例化 Bot 物件，讓 Cog 內部可存取 Bot 主程式
+# 實例化 Bot 物件
 bot = MyClient()
 
-# 啟動機器人
+# 啟動網頁伺服器（Keep Alive）
 t = Thread(target=run_web)
 t.start()
 
+# 啟動機器人
 bot.run(os.getenv("BOT_TOKEN"))

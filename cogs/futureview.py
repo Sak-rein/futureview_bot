@@ -2,7 +2,7 @@ import discord
 import io
 import os
 import asyncio
-import time  # 新增：用於計算高精度的執行時間
+import time
 
 from discord.ext import commands
 from discord import app_commands
@@ -11,28 +11,72 @@ from datetime import datetime
 
 class FutureView(commands.Cog):
     def __init__(self, bot):
-        self.bot = bot  
-
-    # 修改：加入 end_time 與 duration 參數
-    async def record_user(self, interaction, start_time_str, end_time_str, duration, command_name="/期數"):
+        self.bot = bot
+        
+        # 優化：字型在初始化時只載入一次，避免每次畫圖都重複讀取硬碟
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(current_dir)
+        font_path = os.path.join(project_root, "NotoSansJP-Regular.ttf")
         try:
-            # 讓寫入 Log 在背景默默執行，不阻塞主流程
+            self.font_main = ImageFont.truetype(font_path, 20)
+            self.font_title = ImageFont.truetype(font_path, 20)
+        except Exception as e:
+            print(f"字型載入失敗，使用預設字型: {e}")
+            self.font_main = ImageFont.load_default()
+            self.font_title = ImageFont.load_default()
+
+    # 在 Cog 載入時，自動觸發第一次資料非同步快取
+    async def cog_load(self):
+        asyncio.create_task(self.update_cache())
+
+    # 非同步更新快取的內建模組
+    async def update_cache(self):
+        try:
+            print("正在從 Google Sheets 同步未來視資料至快取...")
+            records = await asyncio.to_thread(self.bot.sht.get_all_records)
+            self.bot.sheets_cache = records
+            print(f"快取同步成功，共 {len(self.bot.sheets_cache)} 筆資料。")
+            return True
+        except Exception as e:
+            print(f"快取同步失敗: {e}")
+            return False
+
+    # 監聽器：只要 Bot 的任何斜線指令「成功執行完畢」且前端解除模糊後，才會偷偷在背景執行
+    @commands.Cog.listener()
+    async def on_app_command_completion(self, interaction: discord.Interaction, command: app_commands.Command):
+        # 限制只紀錄「期數」指令，其餘指令不處理
+        if command.name != "期數":
+            return
+
+        # 從 extras 安全暫存區取出指令觸發時的時間戳，防範死鎖
+        start_perf_time = interaction.extras.get("start_perf_time", time.perf_counter())
+        start_wall_time = interaction.extras.get("start_wall_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        
+        end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        duration = time.perf_counter() - start_perf_time
+
+        # 撈出使用者當時輸入的參數（例如：期數是多少）來拼裝完整指令
+        filled_options = [f"{opt['name']}: {opt['value']}" for opt in interaction.data.get("options", [])]
+        full_command = f"/{command.name} {' '.join(filled_options)}"
+
+        try:
+            # 丟到背景線程默默寫入 Google Sheets 的 Log 頁面
             asyncio.create_task(
                 asyncio.to_thread(
                     self.bot.user_log.append_row,
                     [
-                        start_time_str, # 指令觸發時間
-                        end_time_str,   # 圖片完成發送時間
-                        f"{duration:.2f} 秒",   # 總共耗時（精確到小數點後兩位）
+                        start_wall_time,               # 指令觸發時間
+                        end_wall_time,                 # 圖片成功發送時間
+                        f"{duration:.2f} 秒",          # 實際總耗時
                         interaction.user.id,
                         interaction.user.name,
                         interaction.user.display_name,
-                        command_name,
+                        full_command                   # 完整指令內容
                     ]
                 )
             )
         except Exception as e:
-            print(f"UserLog Error: {e}")
+            print(f"UserLog 背景紀錄失敗: {e}")
 
     def generate_image(self, row_data):
         canvas_w, canvas_h = 850, 520
@@ -41,14 +85,6 @@ class FutureView(commands.Cog):
         
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(current_dir)
-        font_path = os.path.join(project_root, "NotoSansJP-Regular.ttf")
-
-        try:
-            font_main = ImageFont.truetype(font_path, 20)
-            font_title = ImageFont.truetype(font_path, 20)
-        except:
-            font_main = ImageFont.load_default()
-            font_title = ImageFont.load_default()
 
         # 1. Banner (本地快取讀取)
         banner_name = str(row_data.get('banner', '')).strip()
@@ -78,14 +114,15 @@ class FutureView(commands.Cog):
         start_d, end_d = row_data.get('開活日', ''), row_data.get('結活日', '')
         title = row_data.get('活動名稱', '')
 
-        draw.text((45, 302), f"{period}", fill=(0, 0, 0), font=font_main, anchor="mm")
-        draw.text((110, 302), f"{mode}", fill=(0, 0, 0), font=font_main, anchor="mm")
+        # 使用優化重用後的字型
+        draw.text((45, 302), f"{period}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
+        draw.text((110, 302), f"{mode}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(158, 320.5), (158, 285)], fill=(200, 200, 200), width=2)
-        draw.text((220, 302), f"{start_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((220, 302), f"{start_d}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(288, 320.5), (288, 285)], fill=(200, 200, 200), width=2)
-        draw.text((355, 302), f"{end_d}", fill=(0, 0, 0), font=font_main, anchor="mm")
+        draw.text((355, 302), f"{end_d}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(423, 320.5), (423, 285)], fill=(200, 200, 200), width=2)
-        draw.text((637, 302), f"{title}", fill=(27, 38, 59), font=font_title, anchor="mm")
+        draw.text((637, 302), f"{title}", fill=(27, 38, 59), font=self.font_title, anchor="mm")
 
         # 屬性
         attr_name = str(row_data.get('attribute', '')).lower().strip()
@@ -142,18 +179,23 @@ class FutureView(commands.Cog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
-        # 紀錄起點時間
-        start_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        start_perf_time = time.perf_counter()
+        # 將時間戳安全暫存在 extras 區，供背景監聽器存取
+        interaction.extras["start_perf_time"] = time.perf_counter()
+        interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         is_private = True if visibility is None else visibility.value == "private"
 
-        # 1. 先進 defer
         await interaction.response.defer(thinking=True, ephemeral=is_private)
         
         try:
-            # 獲取 Google Sheets 資料
-            records = await asyncio.to_thread(self.bot.sht.get_all_records)
+            # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
+            if not self.bot.sheets_cache:
+                records = await asyncio.to_thread(self.bot.sht.get_all_records)
+                self.bot.sheets_cache = records
+            else:
+                records = self.bot.sheets_cache
+            
+            # 從記憶體快取中秒讀目標期數資料 (耗時近乎 0 毫秒)
             target_row = next((r for r in records if str(r.get('期數')) == str(period)), None)
             
             if not target_row:
@@ -163,21 +205,28 @@ class FutureView(commands.Cog):
             # 2. 繪圖流程放進線程跑
             img_stream = await asyncio.to_thread(self.generate_image, target_row)
 
-            # 3. 發送結果（等到這一步成功送出，代表使用者畫面上已經看得到了）
+            # 3. 發送結果（發送完畢後，畫面立刻解鎖顯示圖片）
             await interaction.followup.send(
                 content=f"臺邦 {period} 期未來視：", 
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
             
-            # 4. 紀錄終點時間與計算耗時
-            end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            duration = time.perf_counter() - start_perf_time
-
-            # 5. 指令完全成功後，去背景補紀錄 Log
-            await self.record_user(interaction, start_wall_time, end_wall_time, duration, f"/期數 {period}")
+            # 註：這裡原本的寫 Log 程式碼已完全移除！
+            # 當這個函式安全結束後，Discord.py 會自動觸發上面的 on_app_command_completion 進行背景紀錄。
             
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
+
+    # 新增：供管理員手動同步雲端最新資料的指令
+    @app_commands.command(name="更新未來視快取", description="重新手動從 Google Sheets 同步資料至 Bot 記憶體")
+    @app_commands.checks.has_permissions(administrator=True)
+    async def reload_cache(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        success = await self.update_cache()
+        if success:
+            await interaction.followup.send("未來視快取資料更新成功！")
+        else:
+            await interaction.followup.send("更新失敗，請檢查後台終端機錯誤訊息。")
 
 async def setup(bot):
     await bot.add_cog(FutureView(bot))
