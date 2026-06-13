@@ -6,19 +6,8 @@ import asyncio
 from dotenv import load_dotenv
 load_dotenv()
 
-from flask import Flask
 from threading import Thread
 from discord.ext import commands
-
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is alive"
-
-def run_web():
-    port = int(os.environ.get("PORT", 8080))
-    app.run(host="0.0.0.0", port=port)
 
 # 使用者安裝型（全域），伺服器變數放著以防萬一
 GUILD_ID = 728929244830498857
@@ -74,10 +63,6 @@ class MyClient(commands.Bot):
 
 # 實例化 Bot 物件
 bot = MyClient()
-
-# 啟動網頁伺服器（Keep Alive）
-t = Thread(target=run_web)
-t.start()
 
 # 啟動機器人
 bot.run(os.getenv("BOT_TOKEN"))
