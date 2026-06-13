@@ -183,13 +183,9 @@ class FutureView(commands.Cog):
         interaction.extras["start_perf_time"] = time.perf_counter()
         interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        is_private = False
-        await interaction.response.defer(
-        thinking=True,
-        ephemeral=False
-        )
+        is_private = True if visibility is None else visibility.value == "private"
+        await interaction.response.defer(thinking=True, ephemeral=is_private)
 
-        await interaction.response.defer(thinking=True, ephemeral=is_private)        
         try:
             # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
             if not self.bot.sheets_cache:
