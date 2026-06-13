@@ -187,6 +187,9 @@ class FutureView(commands.Cog):
 
         await interaction.response.defer(thinking=True, ephemeral=is_private)
         
+        print(f"DEBUG - 目前全域快取長度為: {len(self.bot.sheets_cache)}")
+        print(f"DEBUG - 準備開始撈資料的時間點...")
+        
         try:
             # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
             if not self.bot.sheets_cache:
