@@ -1,8 +1,10 @@
 import discord
 import io
 import os
+import time
 import asyncio
 
+from datetime import datetime
 from discord.ext import commands
 from discord import app_commands
 from PIL import Image, ImageDraw, ImageFont
@@ -38,6 +40,43 @@ class FutureView(commands.Cog):
         except Exception as e:
             print(f"快取同步失敗: {e}")
             return False
+# 監聽器：只要 Bot 的任何斜線指令「成功執行完畢」且前端解除模糊後，才會偷偷在背景執行
+    @commands.Cog.listener()
+    async def on_app_command_completion(self, interaction: discord.Interaction, command: app_commands.Command):
+        # 限制只紀錄「期數」指令，其餘指令不處理
+        if command.name != "期數":
+            return
+
+        # 從 extras 安全暫存區取出指令觸發時的時間戳，防範死鎖
+        start_perf_time = interaction.extras.get("start_perf_time", time.perf_counter())
+        start_wall_time = interaction.extras.get("start_wall_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        
+        end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        duration = time.perf_counter() - start_perf_time
+
+        # 撈出使用者當時輸入的參數拼裝完整指令
+        filled_options = [f"{opt['name']}: {opt['value']}" for opt in interaction.data.get("options", [])]
+        full_command = f"/期數 {' '.join(filled_options)}"
+
+        try:
+            # 丟到背景線程默默寫入 Google Sheets 的 Log 頁面
+            asyncio.create_task(
+                asyncio.to_thread(
+                    self.bot.user_log.append_row,
+                    [
+                        start_wall_time,               # 指令觸發時間
+                        end_wall_time,                 # 圖片成功發送時間
+                        f"{duration:.2f} 秒",          # 實際總耗時
+                        interaction.user.id,
+                        interaction.user.name,
+                        interaction.user.display_name,
+                        full_command                   # 完整指令內容
+                    ]
+                )
+            )
+
+        except Exception as e:
+            print(f"UserLog 背景紀錄失敗: {e}")
 
     def generate_image(self, row_data):
         canvas_w, canvas_h = 850, 520
