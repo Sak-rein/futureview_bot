@@ -21,13 +21,13 @@ class FutureView(commands.Cog):
                 asyncio.to_thread(
                     self.bot.user_log.append_row,
                     [
-                        start_time_str,                   # 指令觸發時間
-                        end_time_str,                     # 圖片完成發送時間
-                        f"{duration:.2f} 秒",             # 總共耗時（精確到小數點後兩位）
+                        start_time_str, # 指令觸發時間
+                        end_time_str,   # 圖片完成發送時間
+                        f"{duration:.2f} 秒",   # 總共耗時（精確到小數點後兩位）
                         interaction.user.id,
                         interaction.user.name,
                         interaction.user.display_name,
-                        command_name
+                        command_name,
                     ]
                 )
             )
