@@ -171,15 +171,25 @@ class FutureView(commands.Cog):
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數 (不含316之前)", visibility="顯示方式")
-   
+    @app_commands.choices(visibility=[
+        app_commands.Choice(name="公開", value="public"),
+        app_commands.Choice(name="僅自己可見", value="private")
+    ])
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def Events(self, interaction: discord.Interaction, period: int):
+    async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
         # 將時間戳安全暫存在 extras 區，供背景監聽器存取
         interaction.extras["start_perf_time"] = time.perf_counter()
         interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
+
+        is_private = False
+        await interaction.response.defer(
+        thinking=True,
+        ephemeral=False
+        )
+
+        await interaction.response.defer(thinking=True, ephemeral=is_private)        
         try:
             # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
             if not self.bot.sheets_cache:
