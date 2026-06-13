@@ -86,35 +86,32 @@ class FutureView(commands.Cog):
         current_dir = os.path.dirname(os.path.abspath(__file__))
         project_root = os.path.dirname(current_dir)
 
-        # 1. Banner (本地快取讀取)
+        # 1. Banner 計時
+        t_b1 = time.perf_counter()
         banner_name = str(row_data.get('banner', '')).strip()
         banner_path = os.path.join(project_root, "assets", "banner", f"{banner_name}.png")
-
         banner_img = None
         if banner_name and os.path.exists(banner_path):
             try:
                 banner_img = Image.open(banner_path).convert("RGBA")
             except Exception as e:
                 print(f"讀取本地 Banner 錯誤: {e}")
-
         if banner_img:
             banner_img = banner_img.resize((850, 282))
             canvas.paste(banner_img, (0, 1), banner_img)
         else:
             draw.rectangle([(0, 1), (850, 283)], fill=(230, 230, 230))
-            draw.text((425, 140), "Banner 本地檔案不存在", fill=(100, 100, 100), anchor="mm")
+        print(f"  └─ 🪵 Banner 處理耗時: {time.perf_counter() - t_b1:.4f} 秒")
 
         # 表格格線
         draw.line([(0, 285), (canvas_w, 285)], fill=(0, 0, 0), width=2)
         draw.line([(0, 320), (canvas_w, 320)], fill=(0, 0, 0), width=1)
         draw.line([(0, 380), (canvas_w, 380)], fill=(0, 0, 0), width=2)
         
-        # 提取文字
+        # 文字
         period, mode = row_data.get('期數', ''), row_data.get('模式', '')
         start_d, end_d = row_data.get('開活日', ''), row_data.get('結活日', '')
         title = row_data.get('活動名稱', '')
-
-        # 使用優化重用後的字型
         draw.text((45, 302), f"{period}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.text((110, 302), f"{mode}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(158, 320.5), (158, 285)], fill=(200, 200, 200), width=2)
@@ -124,22 +121,23 @@ class FutureView(commands.Cog):
         draw.line([(423, 320.5), (423, 285)], fill=(200, 200, 200), width=2)
         draw.text((637, 302), f"{title}", fill=(27, 38, 59), font=self.font_title, anchor="mm")
 
-        # 屬性
+        # 2. 屬性與Logo計時
+        t_b2 = time.perf_counter()
         attr_name = str(row_data.get('attribute', '')).lower().strip()
         attr_path = os.path.join(project_root, "assets", "attribute", f"{attr_name}.png")
         if os.path.exists(attr_path):
             attr_img = Image.open(attr_path).convert("RGBA").resize((100, 100))
             canvas.paste(attr_img, (30, 400), attr_img)
 
-        # 樂隊logo
         logo_name = str(row_data.get('logo', '')).lower().strip()
         logo_path = os.path.join(project_root, "assets", "logos", f"{logo_name}.png")
-
         if os.path.exists(logo_path):
             logo_img = Image.open(logo_path).convert("RGBA").resize((140, 70))
             canvas.paste(logo_img, (12, 317), logo_img)
+        print(f"  └─ 🪵 屬性與Logo處理耗時: {time.perf_counter() - t_b2:.4f} 秒")
 
-        # 角色大頭貼
+        # 3. 角色大頭貼計時
+        t_b3 = time.perf_counter()
         chibi_raw = str(row_data.get('出場角色', ''))
         chibi_list = [c.strip() for c in chibi_raw.split(',') if c.strip()]
         chibi_start_x = 197  
@@ -150,8 +148,10 @@ class FutureView(commands.Cog):
                 chibi_img = Image.open(chibi_path).convert("RGBA").resize((48, 48))
                 x_pos = chibi_start_x + (i * chibi_spacing) 
                 canvas.paste(chibi_img, (x_pos, 327), chibi_img)
+        print(f"  └─ 🪵 角色大頭貼處理耗時: {time.perf_counter() - t_b3:.4f} 秒")
 
-        # 頂艦卡片
+        # 4. 頂艦卡片計時
+        t_b4 = time.perf_counter()
         card_raw = str(row_data.get('頂艦', ''))
         card_list = [c.strip() for c in card_raw.split(',') if c.strip()]
         card_start_x = 160  
@@ -163,6 +163,7 @@ class FutureView(commands.Cog):
                 card_img = Image.open(card_path).convert("RGBA").resize(card_size) 
                 x_pos = card_start_x + (i * card_spacing) 
                 canvas.paste(card_img, (x_pos, 390), card_img)
+        print(f"  └─ 🪵 頂艦卡片處理耗時: {time.perf_counter() - t_b4:.4f} 秒")
 
         img_buffer = io.BytesIO()
         canvas.save(img_buffer, format="PNG", optimize=True)
@@ -179,47 +180,66 @@ class FutureView(commands.Cog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
-        # 將時間戳安全暫存在 extras 區，供背景監聽器存取
-        interaction.extras["start_perf_time"] = time.perf_counter()
-        interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
+        # 進門第一件事，搶先續命
         is_private = True if visibility is None else visibility.value == "private"
-
         await interaction.response.defer(thinking=True, ephemeral=is_private)
         
-        print(f"DEBUG - 目前全域快取長度為: {len(self.bot.sheets_cache)}")
-        print(f"DEBUG - 準備開始撈資料的時間點...")
+        # 記錄時間基準點
+        t_start = time.perf_counter()
+        wall_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         try:
-            # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
-            if not self.bot.sheets_cache:
+            # 1. 記憶體搜尋資料
+            t_cache_start = time.perf_counter()
+            records = self.bot.sheets_cache
+            if not records:
                 records = await asyncio.to_thread(self.bot.sht.get_all_records)
                 self.bot.sheets_cache = records
-            else:
-                records = self.bot.sheets_cache
-            
-            # 從記憶體快取中秒讀目標期數資料 (耗時近乎 0 毫秒)
+                
             target_row = next((r for r in records if str(r.get('期數')) == str(period)), None)
+            t_cache_end = time.perf_counter()
+            t_step2 = t_cache_end - t_cache_start
             
             if not target_row:
                 await interaction.followup.send(f"找不到第 {period} 期的資料。")
                 return
             
-            # 2. 繪圖流程放進線程跑
+            # 2. Pillow 繪圖流程
+            t_draw_start = time.perf_counter()
             img_stream = await asyncio.to_thread(self.generate_image, target_row)
+            t_draw_end = time.perf_counter()
+            t_step3 = t_draw_end - t_draw_start
 
-            # 3. 發送結果（發送完畢後，畫面立刻解鎖顯示圖片）
+            # 3. Discord 圖片上傳發送
+            t_send_start = time.perf_counter()
             await interaction.followup.send(
                 content=f"臺邦 {period} 期未來視：", 
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
+            t_send_end = time.perf_counter()
+            t_step4 = t_send_end - t_send_start
             
-            # 註：這裡原本的寫 Log 程式碼已完全移除！
-            # 當這個函式安全結束後，Discord.py 會自動觸發上面的 on_app_command_completion 進行背景紀錄。
+            # 4. 計算總耗時
+            t_total = time.perf_counter() - t_start
+            
+            # ⚡ 核心改動：直接一行程式碼高速寫入本地檔案，耗時近乎 0，絕不卡頓！
+            log_line = (
+                f"[{wall_time_str}] 使用者: {interaction.user.name} ({interaction.user.id}) | "
+                f"查詢期數: {period} | "
+                f"快取搜尋: {t_step2:.4f}秒 | 繪圖: {t_step3:.4f}秒 | 上傳: {t_step4:.4f}秒 | "
+                f"指令總耗時: {t_total:.4f}秒\n"
+            )
+            
+            # 使用非同步線程寫入硬碟，確保完全不干擾 Discord 主要運作
+            def save_to_local_file():
+                with open("bot_perf_logs.txt", "a", encoding="utf-8") as f:
+                    f.write(log_line)
+                    
+            asyncio.create_task(asyncio.to_thread(save_to_local_file))
             
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
-
+            
     # 新增：供管理員手動同步雲端最新資料的指令
     @app_commands.command(name="更新未來視快取", description="重新手動從 Google Sheets 同步資料至 Bot 記憶體")
     @app_commands.checks.has_permissions(administrator=True)

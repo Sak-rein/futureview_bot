@@ -3,6 +3,8 @@ import json
 import gspread
 import os
 import asyncio
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask
 from threading import Thread
