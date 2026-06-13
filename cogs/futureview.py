@@ -2,7 +2,7 @@ import discord
 import io
 import os
 import asyncio
-import aiohttp  # 改用 aiohttp 進行非同步下載
+import time  # 新增：用於計算高精度的執行時間
 
 from discord.ext import commands
 from discord import app_commands
@@ -12,46 +12,29 @@ from datetime import datetime
 class FutureView(commands.Cog):
     def __init__(self, bot):
         self.bot = bot  
-        # 建立一個持久的 aiohttp session 供下載使用
-        self.session = aiohttp.ClientSession()
 
-    # 確保 Bot 關閉時能正常釋放 session
-    def cog_unload(self):
-        asyncio.create_task(self.session.close())
-
-    async def record_user(self, interaction, command_name="/期數"):
+    # 修改：加入 end_time 與 duration 參數
+    async def record_user(self, interaction, start_time_str, end_time_str, duration, command_name="/期數"):
         try:
             # 讓寫入 Log 在背景默默執行，不阻塞主流程
             asyncio.create_task(
                 asyncio.to_thread(
                     self.bot.user_log.append_row,
                     [
-                        datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        start_time_str,                   # 指令觸發時間
+                        end_time_str,                     # 圖片完成發送時間
+                        f"{duration:.2f} 秒",             # 總共耗時（精確到小數點後兩位）
                         interaction.user.id,
                         interaction.user.name,
                         interaction.user.display_name,
+                        command_name
                     ]
                 )
             )
         except Exception as e:
             print(f"UserLog Error: {e}")
 
-    # 修改為真正的 async 下載，不再阻塞線程
-    async def get_image_from_url_async(self, url):
-        if not url or str(url).strip().lower() in ['none', 'nan', '']:
-            return None
-        try:
-            async with self.session.get(url, timeout=5) as response:
-                if response.status == 200:
-                    data = await response.read()
-                    # 在線程中打開圖片，避免 PIL 阻塞
-                    return await asyncio.to_thread(lambda: Image.open(io.BytesIO(data)).convert("RGBA"))
-        except Exception as e:
-            print(f"下載圖片錯誤: {e}")
-        return None
-
-    # 此方法現在只純粹做繪圖（CPU密集），不包含任何網路請求
-    def generate_image(self, row_data, banner_img):
+    def generate_image(self, row_data):
         canvas_w, canvas_h = 850, 520
         canvas = Image.new("RGBA", (canvas_w, canvas_h), color=(255, 255, 255, 255))
         draw = ImageDraw.Draw(canvas)
@@ -67,13 +50,23 @@ class FutureView(commands.Cog):
             font_main = ImageFont.load_default()
             font_title = ImageFont.load_default()
 
-        # 1. Banner (由外部傳入已經下載好的圖片物件)
+        # 1. Banner (本地快取讀取)
+        banner_name = str(row_data.get('banner_file', '')).strip()
+        banner_path = os.path.join(project_root, "assets", "banners", banner_name)
+
+        banner_img = None
+        if banner_name and os.path.exists(banner_path):
+            try:
+                banner_img = Image.open(banner_path).convert("RGBA")
+            except Exception as e:
+                print(f"讀取本地 Banner 錯誤: {e}")
+
         if banner_img:
             banner_img = banner_img.resize((850, 282))
             canvas.paste(banner_img, (0, 1), banner_img)
         else:
             draw.rectangle([(0, 1), (850, 283)], fill=(230, 230, 230))
-            draw.text((425, 140), "Banner 載入失敗", fill=(100, 100, 100), anchor="mm")
+            draw.text((425, 140), "Banner 本地檔案不存在", fill=(100, 100, 100), anchor="mm")
 
         # 表格格線
         draw.line([(0, 285), (canvas_w, 285)], fill=(0, 0, 0), width=2)
@@ -94,14 +87,14 @@ class FutureView(commands.Cog):
         draw.line([(423, 320.5), (423, 285)], fill=(200, 200, 200), width=2)
         draw.text((637, 302), f"{title}", fill=(27, 38, 59), font=font_title, anchor="mm")
 
-        # 屬性 (保持本地讀取)
+        # 屬性
         attr_name = str(row_data.get('attribute', '')).lower().strip()
-        attr_path = f"assets/attribute/{attr_name}.png"
+        attr_path = os.path.join(project_root, "assets", "attribute", f"{attr_name}.png")
         if os.path.exists(attr_path):
             attr_img = Image.open(attr_path).convert("RGBA").resize((100, 100))
             canvas.paste(attr_img, (30, 400), attr_img)
 
-        # 樂隊logo (保持本地讀取)
+        # 樂隊logo
         logo_name = str(row_data.get('logo', '')).lower().strip()
         logo_path = os.path.join(project_root, "assets", "logos", f"{logo_name}.png")
 
@@ -115,7 +108,7 @@ class FutureView(commands.Cog):
         chibi_start_x = 197  
         chibi_spacing = 135   
         for i, name in enumerate(chibi_list):
-            chibi_path = f"assets/chibi/{name.lower()}.png"
+            chibi_path = os.path.join(project_root, "assets", "chibi", f"{name.lower()}.png")
             if os.path.exists(chibi_path):
                 chibi_img = Image.open(chibi_path).convert("RGBA").resize((48, 48))
                 x_pos = chibi_start_x + (i * chibi_spacing) 
@@ -128,14 +121,13 @@ class FutureView(commands.Cog):
         card_spacing = 135  
         card_size = (120, 120) 
         for i, card_name in enumerate(card_list):
-            card_path = f"assets/cards/{card_name}.png"
+            card_path = os.path.join(project_root, "assets", "cards", f"{card_name}.png")
             if os.path.exists(card_path):
                 card_img = Image.open(card_path).convert("RGBA").resize(card_size) 
                 x_pos = card_start_x + (i * card_spacing) 
                 canvas.paste(card_img, (x_pos, 390), card_img)
 
         img_buffer = io.BytesIO()
-        # 【優化點】儲存為 PNG 時加上 optimize=True 壓縮體積，減少 Discord 載入負擔
         canvas.save(img_buffer, format="PNG", optimize=True)
         img_buffer.seek(0)
         return img_buffer
@@ -150,13 +142,14 @@ class FutureView(commands.Cog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
+        # 紀錄起點時間
+        start_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        start_perf_time = time.perf_counter()
+
         is_private = True if visibility is None else visibility.value == "private"
 
-        # 1. 先進 defer 讓 Discord 掛起等待
+        # 1. 先進 defer
         await interaction.response.defer(thinking=True, ephemeral=is_private)
-        
-        # 2. 背景紀錄 Log，不阻礙後續程式碼執行
-        await self.record_user(interaction, "/期數")
         
         try:
             # 獲取 Google Sheets 資料
@@ -167,18 +160,21 @@ class FutureView(commands.Cog):
                 await interaction.followup.send(f"找不到第 {period} 期的資料。")
                 return
             
-            # 3. 【核心改動】使用 aiohttp 非同步下載 Banner，不佔用線程池
-            image_url = target_row.get('banner_url')
-            banner_img = await self.get_image_from_url_async(image_url)
+            # 2. 繪圖流程放進線程跑
+            img_stream = await asyncio.to_thread(self.generate_image, target_row)
 
-            # 4. 把下載好的圖片傳給繪圖函數
-            img_stream = await asyncio.to_thread(self.generate_image, target_row, banner_img)
-
-            # 5. 發送結果
+            # 3. 發送結果（等到這一步成功送出，代表使用者畫面上已經看得到了）
             await interaction.followup.send(
                 content=f"臺邦 {period} 期未來視：", 
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
+            
+            # 4. 紀錄終點時間與計算耗時
+            end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            duration = time.perf_counter() - start_perf_time
+
+            # 5. 指令完全成功後，去背景補紀錄 Log
+            await self.record_user(interaction, start_wall_time, end_wall_time, duration, f"/期數 {period}")
             
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
