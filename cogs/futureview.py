@@ -51,8 +51,8 @@ class FutureView(commands.Cog):
             font_title = ImageFont.load_default()
 
         # 1. Banner (本地快取讀取)
-        banner_name = str(row_data.get('banner_file', '')).strip()
-        banner_path = os.path.join(project_root, "assets", "banners", banner_name)
+        banner_name = str(row_data.get('banner', '')).strip()
+        banner_path = os.path.join(project_root, "assets", "banner", banner_name)
 
         banner_img = None
         if banner_name and os.path.exists(banner_path):
