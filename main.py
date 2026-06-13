@@ -36,13 +36,13 @@ class MyClient(commands.Bot):
         
         # 綁定 Google 試算表
         self.gc = gspread.service_account_from_dict(google_creds)
+
         self.spreadsheet = self.gc.open("FUTUREVIEW")
 
-        # 未來視活動資料來源
         self.sht = self.spreadsheet.sheet1
         
-        # ✂️ 移除：self.user_log = self.spreadsheet.worksheet("UserLog")
-        # 理由：我們已經改用本地 .txt 寫入，移除這行可以避免雲端分頁不存在時導致 Bot 開機崩潰。
+        # ⚠️ 注意：請確保你 Google Sheets 的分頁名稱真的是 "UserLog"
+        self.user_log = self.spreadsheet.worksheet("UserLog") 
         
         # 建立全域記憶體快取清單存放活動資料 (供 Cog 內部訪問)
         self.sheets_cache = []
@@ -53,9 +53,8 @@ class MyClient(commands.Bot):
         for filename in os.listdir('./cogs'):
             if filename.endswith('.py'):
                 await self.load_extension(f'cogs.{filename[:-3]}')
-                print(f'成功載入模組: {filename}')
+                print(f'成功載入模組: {filename}，進行全域指令同步...')
         
-        print('正在進行全域指令同步...')
         synced = await self.tree.sync() # 直接同步到全域
         print(f"【同步成功】全域同步 {len(synced)} 個斜線指令")
 
