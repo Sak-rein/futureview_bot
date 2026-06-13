@@ -40,8 +40,6 @@ class MyClient(commands.Bot):
         self.spreadsheet = self.gc.open("FUTUREVIEW")
 
         self.sht = self.spreadsheet.sheet1
-        
-        # ⚠️ 注意：請確保你 Google Sheets 的分頁名稱真的是 "UserLog"
         self.user_log = self.spreadsheet.worksheet("UserLog") 
         
         # 建立全域記憶體快取清單存放活動資料 (供 Cog 內部訪問)

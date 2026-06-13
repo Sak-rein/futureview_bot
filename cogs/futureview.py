@@ -55,9 +55,9 @@ class FutureView(commands.Cog):
         end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         duration = time.perf_counter() - start_perf_time
 
-        # 撈出使用者當時輸入的參數（例如：期數是多少）來拼裝完整指令
+        # 撈出使用者當時輸入的參數拼裝完整指令
         filled_options = [f"{opt['name']}: {opt['value']}" for opt in interaction.data.get("options", [])]
-        full_command = f"/{command.name} {' '.join(filled_options)}"
+        full_command = f"/期數 {' '.join(filled_options)}"
 
         try:
             # 丟到背景線程默默寫入 Google Sheets 的 Log 頁面
@@ -171,21 +171,14 @@ class FutureView(commands.Cog):
 
     @app_commands.command(name="期數", description="臺邦未來活動情報")
     @app_commands.describe(period="請輸入期數 (不含316之前)", visibility="顯示方式")
-    @app_commands.choices(visibility=[
-        app_commands.Choice(name="公開", value="public"),
-        app_commands.Choice(name="僅自己可見", value="private")
-    ])
+   
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
-    async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
+    async def Events(self, interaction: discord.Interaction, period: int):
         
         # 將時間戳安全暫存在 extras 區，供背景監聽器存取
         interaction.extras["start_perf_time"] = time.perf_counter()
         interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-        is_private = True if visibility is None else visibility.value == "private"
-
-        await interaction.response.defer(thinking=True, ephemeral=is_private)
         
         try:
             # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
@@ -211,22 +204,9 @@ class FutureView(commands.Cog):
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
             
-            # 註：這裡原本的寫 Log 程式碼已完全移除！
             # 當這個函式安全結束後，Discord.py 會自動觸發上面的 on_app_command_completion 進行背景紀錄。
-            
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
-
-    # 新增：供管理員手動同步雲端最新資料的指令
-    @app_commands.command(name="更新未來視快取", description="重新手動從 Google Sheets 同步資料至 Bot 記憶體")
-    @app_commands.checks.has_permissions(administrator=True)
-    async def reload_cache(self, interaction: discord.Interaction):
-        await interaction.response.defer(ephemeral=True)
-        success = await self.update_cache()
-        if success:
-            await interaction.followup.send("未來視快取資料更新成功！")
-        else:
-            await interaction.followup.send("更新失敗，請檢查後台終端機錯誤訊息。")
 
 async def setup(bot):
     await bot.add_cog(FutureView(bot))
