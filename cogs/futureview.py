@@ -41,8 +41,7 @@ class FutureView(commands.Cog):
             print(f"快取同步失敗: {e}")
             return False
 
-    # 🛠️ 修正 1：徹底移除原本的 on_app_command_completion 監聽器！
-    # 避免它在後台偷偷戳 Google Sheets 的 append_row 導致 Event Loop 再次塞車
+    # ❌ 已徹底移除：on_app_command_completion 監聽器（防範後台網路再度塞車）
 
     def generate_image(self, row_data):
         canvas_w, canvas_h = 850, 520
@@ -130,11 +129,9 @@ class FutureView(commands.Cog):
                 x_pos = card_start_x + (i * card_spacing) 
                 canvas.paste(card_img, (x_pos, 390), card_img)
 
-        # 🛠️ 優化可選：改儲存為 JPEG 格式以換取極致的 Discord 上傳速度（600KB -> 50KB）
-        # 如果你想維持原本的 PNG，請把下面這段換回你原本的三行即可。
-        final_canvas = canvas.convert("RGB")
+        # 穩健保留：繼續沿用你要求的 PNG 格式輸出
         img_buffer = io.BytesIO()
-        final_canvas.save(img_buffer, format="JPEG", quality=85, optimize=True)
+        canvas.save(img_buffer, format="PNG", optimize=True)
         img_buffer.seek(0)
         return img_buffer
 
@@ -148,7 +145,7 @@ class FutureView(commands.Cog):
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
         
-        # 🛠️ 修正 2：在進門 defer 之前，先把時間基準點與 extras 暫存區打點好
+        # 調整：在第一時間進門續命之前，先把時間記錄放進暫存字典防呆
         t_start = time.perf_counter()
         wall_time_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
@@ -180,21 +177,18 @@ class FutureView(commands.Cog):
             t_draw_end = time.perf_counter()
             t_step3 = t_draw_end - t_draw_start
 
-            # 3. Discord 圖片上傳發送
+            # 3. Discord 圖片上傳發送 (維持 event_{period}.png 檔名)
             t_send_start = time.perf_counter()
-            
-            # 🛠️ 修正 3：對應上面如果改了 JPEG，這裡副檔名要同步改成 .jpg
             await interaction.followup.send(
                 content=f"臺邦 {period} 期未來視：", 
-                file=discord.File(img_stream, filename=f"event_{period}.jpg")
+                file=discord.File(img_stream, filename=f"event_{period}.png")
             )
             t_send_end = time.perf_counter()
             t_step4 = t_send_end - t_send_start
             
-            # 4. 計算總耗時
+            # 4. 計算總耗時與拼裝 Log
             t_total = time.perf_counter() - t_start
             
-            # 拼裝寫入本地日誌的文字串
             log_line = (
                 f"[{wall_time_str}] 使用者: {interaction.user.name} ({interaction.user.id}) | "
                 f"查詢期數: {period} | "
@@ -202,7 +196,7 @@ class FutureView(commands.Cog):
                 f"指令總耗時: {t_total:.4f}秒\n"
             )
             
-            # 定義本地端極速寫入函式
+            # 本地非同步安全寫入（不塞車）
             def save_to_local_file():
                 with open("bot_perf_logs.txt", "a", encoding="utf-8") as f:
                     f.write(log_line)
