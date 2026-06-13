@@ -40,22 +40,23 @@ class FutureView(commands.Cog):
         except Exception as e:
             print(f"快取同步失敗: {e}")
             return False
-# 監聽器：只要 Bot 的任何斜線指令「成功執行完畢」且前端解除模糊後，才會偷偷在背景執行
+
+    # 監聽器：只要 Bot 的任何斜線指令「成功執行完畢」後，才會偷偷在背景執行
     @commands.Cog.listener()
     async def on_app_command_completion(self, interaction: discord.Interaction, command: app_commands.Command):
         # 限制只紀錄「期數」指令，其餘指令不處理
         if command.name != "期數":
             return
 
-        # 從 extras 安全暫存區取出指令觸發時的時間戳，防範死鎖
+        # 這裡現在可以安全拿到準確的初始時間了
         start_perf_time = interaction.extras.get("start_perf_time", time.perf_counter())
         start_wall_time = interaction.extras.get("start_wall_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
         end_wall_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         duration = time.perf_counter() - start_perf_time
 
-        # 撈出使用者當時輸入的參數拼裝完整指令
-        filled_options = [f"{opt['name']}: {opt['value']}" for opt in interaction.data.get("options", [])]
+        # 撈出使用者輸入的參數拼裝指令
+        filled_options = [str(opt['value']) for opt in interaction.data.get("options", [])]
         full_command = f"/期數 {' '.join(filled_options)}"
 
         try:
@@ -66,7 +67,7 @@ class FutureView(commands.Cog):
                     [
                         start_wall_time,               # 指令觸發時間
                         end_wall_time,                 # 圖片成功發送時間
-                        f"{duration:.2f} 秒",          # 實際總耗時
+                        f"{duration:.2f} 秒",          # 實際總耗時（現在準確了！）
                         interaction.user.id,
                         interaction.user.name,
                         interaction.user.display_name,
@@ -178,10 +179,14 @@ class FutureView(commands.Cog):
     @app_commands.allowed_installs(guilds=True, users=True)
     @app_commands.allowed_contexts(guilds=True, dms=True, private_channels=True)
     async def Events(self, interaction: discord.Interaction, period: int, visibility: app_commands.Choice[str] = None):
+        
+        # 指令觸發時，將當前的時間戳寫入 extras
+        interaction.extras["start_perf_time"] = time.perf_counter()
+        interaction.extras["start_wall_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
         is_private = True if visibility is None else visibility.value == "private"
         await interaction.response.defer(thinking=True, ephemeral=is_private) 
-               
+                
         try:
             # 優化：如果開機時還沒抓完快取，才臨時現場讀取；平時直接走記憶體
             if not self.bot.sheets_cache:
@@ -206,7 +211,6 @@ class FutureView(commands.Cog):
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
             
-            # 當這個函式安全結束後，Discord.py 會自動觸發上面的 on_app_command_completion 進行背景紀錄。
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
 
