@@ -205,9 +205,15 @@ class FutureView(commands.Cog):
             # 2. 繪圖流程放進線程跑
             img_stream = await asyncio.to_thread(self.generate_image, target_row)
 
-            # 3. 發送結果（發送完畢後，畫面立刻解鎖顯示圖片）
+            # 動態判定文字：如果是僅自己可見才加上 iOS 的模糊提示
+            if is_private:
+                msg_content = f"臺邦 {period} 期未來視：\n*(IOS 設備出現模糊圖檔，切換至其他聊天室滑幾下再切回)*"
+            else:
+                msg_content = f"臺邦 {period} 期未來視："
+
+            # 3. 發送結果
             await interaction.followup.send(
-                content=f"臺邦 {period} 期未來視：\n*(若手機版出現模糊圖檔，切換至其他聊天室滑幾下再切回)*", 
+                content=msg_content, 
                 file=discord.File(img_stream, filename=f"event_{period}.png")
             )
             
