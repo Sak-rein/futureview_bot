@@ -166,10 +166,7 @@ class FutureView(commands.Cog):
                 canvas.paste(card_img, (x_pos, 390), card_img)
 
         img_buffer = io.BytesIO()
-        img_buffer = io.BytesIO()
-        
-        # 加上 compress_level=9
-        canvas.save(img_buffer, format="PNG", optimize=True, compress_level=9)
+        canvas.save(img_buffer, format="PNG", optimize=True)
         img_buffer.seek(0)
         return img_buffer
 
@@ -210,9 +207,9 @@ class FutureView(commands.Cog):
 
             # 3. 發送結果（發送完畢後，畫面立刻解鎖顯示圖片）
             await interaction.followup.send(
-            content=f"臺邦 {period} 期未來視：\n*(提示：若手機版出現畫面模糊，切換至其他聊天室滑幾下再切回)*", 
-            file=discord.File(img_stream, filename=f"event_{period}.png")
-)
+                content=f"臺邦 {period} 期未來視：\n*(若手機版出現模糊圖檔，切換至其他聊天室滑幾下再切回)*", 
+                file=discord.File(img_stream, filename=f"event_{period}.png")
+            )
             
         except Exception as e:
             await interaction.followup.send(f"處理失敗，錯誤: {e}")
