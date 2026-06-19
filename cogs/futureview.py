@@ -207,7 +207,7 @@ class FutureView(commands.Cog):
 
             # 動態判定文字：如果是僅自己可見才加上 iOS 的模糊提示
             if is_private:
-                msg_content = f"臺邦 {period} 期未來視：\n*(IOS 設備出現模糊圖檔，切換至其他聊天室滑幾下再切回)*"
+                msg_content = f"臺邦 {period} 期未來視：\n(若IOS 設備出現模糊圖檔，請切換至其他聊天室再切回)"
             else:
                 msg_content = f"臺邦 {period} 期未來視："
 
