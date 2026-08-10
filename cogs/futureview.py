@@ -116,7 +116,7 @@ class FutureView(commands.Cog):
         title = row_data.get('活動名稱', '')
 
         # 使用優化重用後的字型
-        draw.text((45, 302), f"{period}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
+        draw.text((50, 302), f"{period}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.text((105, 302), f"{mode}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(158, 320.5), (158, 285)], fill=(200, 200, 200), width=2)
         draw.text((220, 302), f"{start_d}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
