@@ -48,7 +48,7 @@ class FutureView(commands.Cog):
         if command.name != "期數":
             return
 
-        # 這裡現在可以安全拿到準確的初始時間了
+        # 初始時間
         start_perf_time = interaction.extras.get("start_perf_time", time.perf_counter())
         start_wall_time = interaction.extras.get("start_wall_time", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
         
@@ -67,7 +67,7 @@ class FutureView(commands.Cog):
                     [
                         start_wall_time,               # 指令觸發時間
                         end_wall_time,                 # 圖片成功發送時間
-                        f"{duration:.2f} 秒",          # 實際總耗時（現在準確了！）
+                        f"{duration:.2f} 秒",          # 實際總耗時
                         interaction.user.id,
                         interaction.user.name,
                         interaction.user.display_name,
@@ -117,7 +117,7 @@ class FutureView(commands.Cog):
 
         # 使用優化重用後的字型
         draw.text((45, 302), f"{period}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
-        draw.text((110, 302), f"{mode}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
+        draw.text((105, 302), f"{mode}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(158, 320.5), (158, 285)], fill=(200, 200, 200), width=2)
         draw.text((220, 302), f"{start_d}", fill=(0, 0, 0), font=self.font_main, anchor="mm")
         draw.line([(288, 320.5), (288, 285)], fill=(200, 200, 200), width=2)
